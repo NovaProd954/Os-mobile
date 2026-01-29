@@ -1,93 +1,368 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
+<meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>MyMiniOS</title>
+<title>MyMiniOS — Real</title>
 <link rel="manifest" href="/manifest.json"/>
 <style>
-  :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
-  body,html{height:100%;margin:0;background:#071024;color:#fff;display:flex;flex-direction:column}
-  header{padding:14px;font-size:18px;background:linear-gradient(90deg,rgba(255,255,255,0.03),transparent)}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px;flex:0 0 auto}
-  .icon{background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;text-align:center;cursor:pointer;user-select:none}
+  :root{
+    --bg:#071024; --panel:#0f1724; --muted:#cbd5e1; --accent:#38bdf8;
+    --win-bg:#ffffff; --win-text:#111827;
+  }
+  html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--muted)}
+  #desktop{height:100%;display:flex;flex-direction:column;overflow:hidden;background-size:cover;background-position:center}
+  /* top status bar */
+  .topbar{height:46px;display:flex;align-items:center;padding:6px 12px;background:linear-gradient(180deg, rgba(0,0,0,0.12), transparent);gap:12px}
+  .brand{font-weight:600;color:var(--accent)}
+  .status{margin-left:auto;display:flex;gap:10px;align-items:center}
+  .btn{background:rgba(255,255,255,0.04);border:0;padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
+  /* home grid */
+  #home{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:12px;padding:16px}
+  .icon{background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;text-align:center;cursor:pointer;user-select:none}
   .icon img{width:48px;height:48px;display:block;margin:0 auto 8px}
-  #appView{flex:1;background:#fff;border-top-left-radius:12px;border-top-right-radius:12px;overflow:hidden;display:none}
-  iframe{width:100%;height:100%;border:0}
-  .bar{display:flex;gap:8px;align-items:center}
-  button.round{background:#0d1b2a;border:1px solid #123;border-radius:999px;color:#fff;padding:8px 12px}
+  .dock{height:76px;display:flex;align-items:center;justify-content:center;gap:16px;padding:12px;background:linear-gradient(0deg,transparent,rgba(0,0,0,0.35))}
+  /* window manager */
+  .win{
+    position:absolute;background:var(--win-bg);color:var(--win-text);border-radius:10px;box-shadow:0 8px 30px rgba(2,6,23,0.6);overflow:hidden;
+    min-width:240px;min-height:160px;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,0.12)
+  }
+  .win .title{background:linear-gradient(180deg, rgba(0,0,0,0.02), transparent);padding:8px 10px;cursor:grab;display:flex;align-items:center;gap:8px}
+  .win .title .t{font-weight:600}
+  .win .content{padding:10px;background:#fff;flex:1;overflow:auto}
+  .win .controls{margin-left:auto;display:flex;gap:6px}
+  .small{font-size:12px;color:#666}
+  /* simple responsive */
+  @media (max-width:520px){
+    #home{grid-template-columns:repeat(4,1fr)}
+  }
+  /* wallpaper overlay so settings wallpaper shows */
+  #bgOverlay{position:fixed;inset:0;z-index:-1;pointer-events:none;background-size:cover;background-position:center}
 </style>
 </head>
 <body>
-  <header class="bar">
-    <div>MyMiniOS</div>
-    <div style="margin-left:auto"><button id="installBtn" class="round">Install</button></div>
-  </header>
+<div id="desktop">
+  <div class="topbar">
+    <div class="brand">MyMiniOS</div>
+    <div class="small">v0.9 demo</div>
 
-  <div class="grid" id="home">
-    <div class="icon" data-app="https://example.com"><img src="https://via.placeholder.com/48" alt="A"><div>Browser</div></div>
-    <div class="icon" data-app="https://news.ycombinator.com"><img src="https://via.placeholder.com/48" alt="B"><div>News</div></div>
-    <div class="icon" data-app="about:blank" id="notesBtn"><img src="https://via.placeholder.com/48" alt="C"><div>Notes</div></div>
-    <div class="icon" data-app="https://calendar.google.com"><img src="https://via.placeholder.com/48" alt="D"><div>Calendar</div></div>
-  </div>
-
-  <div id="appView">
-    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f4f4f4;color:#000">
-      <button id="back" class="round">Home</button>
-      <div id="appTitle">App</div>
+    <div class="status">
+      <button class="btn" id="notifyBtn">Notify</button>
+      <div id="clock" class="small">--:--</div>
+      <button class="btn" id="openSettings">Settings</button>
     </div>
-    <iframe id="appFrame" src=""></iframe>
   </div>
+
+  <div id="home" aria-label="home grid">
+    <div class="icon" data-app="browser"><img src="https://via.placeholder.com/48" alt="Browser"><div>Browser</div></div>
+    <div class="icon" data-app="notes"><img src="https://via.placeholder.com/48" alt="Notes"><div>Notes</div></div>
+    <div class="icon" data-app="camera"><img src="https://via.placeholder.com/48" alt="Camera"><div>Camera</div></div>
+    <div class="icon" data-app="gallery"><img src="https://via.placeholder.com/48" alt="Gallery"><div>Gallery</div></div>
+    <div class="icon" data-app="about"><img src="https://via.placeholder.com/48" alt="About"><div>About</div></div>
+  </div>
+
+  <div style="flex:1"></div>
+
+  <div class="dock">
+    <button class="btn" id="openHome">Home</button>
+    <button class="btn" id="openGalleryDock">Gallery</button>
+    <button class="btn" id="installBtn">Install</button>
+  </div>
+</div>
+
+<div id="bgOverlay"></div>
 
 <script>
-  // open apps
-  const icons = document.querySelectorAll('.icon');
-  const appView = document.getElementById('appView');
-  const appFrame = document.getElementById('appFrame');
-  const appTitle = document.getElementById('appTitle');
+/* -----------------------
+   Simple IndexedDB wrapper
+   ----------------------- */
+const DB_NAME = 'miniOSdb';
+const DB_VER = 1;
+let dbPromise = null;
+function openDB(){
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains('notes')) db.createObjectStore('notes', { keyPath:'id', autoIncrement:true });
+      if(!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath:'id', autoIncrement:true });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+  return dbPromise;
+}
+async function idbPut(store, value){
+  const db = await openDB();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction(store, 'readwrite');
+    const s = tx.objectStore(store);
+    const r = s.put(value);
+    r.onsuccess = () => res(r.result);
+    r.onerror = e => rej(e);
+  });
+}
+async function idbGetAll(store){
+  const db = await openDB();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction(store,'readonly');
+    const s = tx.objectStore(store);
+    const r = s.getAll();
+    r.onsuccess = ()=>res(r.result);
+    r.onerror = e=>rej(e);
+  });
+}
 
-  icons.forEach(icon=>{
-    icon.addEventListener('click', ()=>{
-      const url = icon.dataset.app;
-      appTitle.textContent = icon.textContent.trim().split('\n')[0] || 'App';
-      if(url === 'about:blank'){
-        const notes = `<html><body style="font-family:system-ui;padding:12px"><h3>Notes</h3><textarea style="width:100%;height:70vh"></textarea></body></html>`;
-        appFrame.srcdoc = notes;
-      } else {
-        appFrame.src = url;
-      }
-      appView.style.display = 'block';
-      document.getElementById('home').style.display = 'none';
+/* -----------------------
+   Window manager
+   ----------------------- */
+let zTop = 100;
+function createWindow({id,title,content, width=360, height=420, left=60, top=60}){
+  // ensure unique id
+  const existing = document.getElementById('win_'+id);
+  if(existing){existing.style.display='block';existing.style.zIndex = ++zTop; return existing;}
+  const win = document.createElement('div');
+  win.className='win';
+  win.id = 'win_'+id;
+  win.style.width = width+'px';
+  win.style.height = height+'px';
+  win.style.left = left+'px';
+  win.style.top = top+'px';
+  win.style.zIndex = ++zTop;
+  win.innerHTML = `
+    <div class="title">
+      <div class="t">${title}</div>
+      <div class="controls">
+        <button class="btn small" data-act="min">_</button>
+        <button class="btn small" data-act="close">×</button>
+      </div>
+    </div>
+    <div class="content">${content}</div>
+  `;
+  document.body.appendChild(win);
+  // drag
+  const titleEl = win.querySelector('.title');
+  let dragging=false, dx=0, dy=0;
+  titleEl.addEventListener('pointerdown', (e)=>{
+    dragging=true; titleEl.setPointerCapture(e.pointerId);
+    dx = e.clientX - win.offsetLeft; dy = e.clientY - win.offsetTop;
+    win.style.cursor='grabbing';
+    win.style.zIndex = ++zTop;
+  });
+  titleEl.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    win.style.left = (e.clientX - dx) + 'px';
+    win.style.top = (e.clientY - dy) + 'px';
+  });
+  titleEl.addEventListener('pointerup', (e)=>{ dragging=false; win.style.cursor='grab'; titleEl.releasePointerCapture && titleEl.releasePointerCapture(e.pointerId) });
+  // controls
+  win.querySelectorAll('[data-act]').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      const act = btn.dataset.act;
+      if(act==='close') win.remove();
+      if(act==='min') win.style.display='none';
     });
   });
+  // focus on click
+  win.addEventListener('pointerdown', ()=> win.style.zIndex = ++zTop);
+  return win;
+}
 
-  document.getElementById('back').addEventListener('click', ()=> {
-    appFrame.src = 'about:blank';
-    appFrame.srcdoc = '';
-    appView.style.display = 'none';
-    document.getElementById('home').style.display = 'grid';
-  });
+/* -----------------------
+   Small helpers
+   ----------------------- */
+function showToast(text){
+  const id = 'toast_'+Date.now();
+  const el = document.createElement('div');
+  el.id = id;
+  el.style.position='fixed'; el.style.right='12px'; el.style.bottom='12px';
+  el.style.background='rgba(0,0,0,0.7)'; el.style.color='#fff'; el.style.padding='8px 12px'; el.style.borderRadius='8px';
+  el.style.zIndex = ++zTop;
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity 400ms'; el.style.opacity='0'; setTimeout(()=>el.remove(),400) }, 2500);
+}
 
-  // PWA install prompt handling
-  let deferredPrompt;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('installBtn').style.display = 'inline-block';
+/* -----------------------
+   Apps
+   ----------------------- */
+async function openNotes(){
+  const notes = await idbGetAll('notes');
+  const listHtml = notes.map(n=>`<div style="padding:8px;border-bottom:1px solid #eee"><strong>Note #${n.id}</strong><div>${(n.text||'')}</div></div>`).join('') || '<div class="small">No notes yet</div>';
+  const content = `
+    <div>
+      <div style="margin-bottom:8px"><textarea id="noteText" style="width:100%;height:120px"></textarea></div>
+      <div style="display:flex;gap:8px">
+        <button id="saveNote" class="btn">Save Note</button>
+        <button id="clearNote" class="btn">Clear</button>
+      </div>
+      <hr/>
+      <div><strong>Saved</strong>${listHtml}</div>
+    </div>`;
+  const win = createWindow({id:'notes', title:'Notes', content});
+  // events
+  win.querySelector('#saveNote').addEventListener('click', async ()=>{
+    const t = win.querySelector('#noteText').value.trim();
+    if(!t){ showToast('Type something first'); return; }
+    await idbPut('notes', {text:t, created:Date.now()});
+    showToast('Saved');
+    win.remove();
+    openNotes(); // refresh
   });
-  document.getElementById('installBtn').addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt = null;
-    } else {
-      alert('Open the Chrome menu and choose "Add to Home screen".');
+  win.querySelector('#clearNote').addEventListener('click', ()=>win.querySelector('#noteText').value='');
+}
+
+async function openCamera(){
+  const content = `<div><video id="camVideo" autoplay playsinline style="width:100%;height:240px;background:#000"></video>
+    <div style="display:flex;gap:8px;margin-top:8px"><button id="capture" class="btn">Capture</button><button id="closeCam" class="btn">Close</button></div>
+    </div>`;
+  const win = createWindow({id:'camera', title:'Camera', content, width:420, height:360});
+  const video = win.querySelector('#camVideo');
+  let stream = null;
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
+    video.srcObject = stream;
+  } catch(err){
+    win.querySelector('.content').innerHTML = `<div class="small">Camera permission denied or no camera available.</div>`;
+    return;
+  }
+  win.querySelector('#capture').addEventListener('click', async ()=>{
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.85));
+    // store in indexeddb as blob
+    await idbPut('files', {type:'photo', blob, created:Date.now()});
+    showToast('Photo saved to gallery');
+  });
+  win.querySelector('#closeCam').addEventListener('click', ()=>{ stream && stream.getTracks().forEach(t=>t.stop()); win.remove(); });
+}
+
+async function openGallery(){
+  const files = await idbGetAll('files');
+  const notes = await idbGetAll('notes');
+  const parts = [];
+  if(files.length){
+    parts.push('<div><strong>Photos</strong>');
+    for(const f of files.filter(ff=>ff.type==='photo')) {
+      // create object URL
+      const url = URL.createObjectURL(f.blob);
+      parts.push(`<div style="margin:8px 0"><img src="${url}" style="max-width:100%;height:auto;border-radius:8px"/><div class="small">#${f.id} ${new Date(f.created).toLocaleString()}</div></div>`);
+    }
+    parts.push('</div>');
+  }
+  if(notes.length){
+    parts.push('<div><strong>Notes</strong>');
+    for(const n of notes) parts.push(`<div style="padding:8px;border-bottom:1px solid #eee"><strong>Note #${n.id}</strong><div>${(n.text||'')}</div></div>`);
+    parts.push('</div>');
+  }
+  if(parts.length===0) parts.push('<div class="small">No saved files yet</div>');
+  const content = `<div>${parts.join('')}</div>`;
+  createWindow({id:'gallery', title:'Gallery', content, width:520, height:420});
+}
+
+/* -----------------------
+   Settings (wallpaper, theme)
+   ----------------------- */
+function openSettingsWin(){
+  const currentWall = localStorage.getItem('mini_wallpaper') || '';
+  const content = `
+    <div>
+      <div class="small">Wallpaper URL (paste any image URL)</div>
+      <input id="wallUrl" style="width:100%" value="${currentWall}"/>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="applyWall" class="btn">Apply</button>
+        <button id="clearWall" class="btn">Clear</button>
+      </div>
+    </div>`;
+  const win = createWindow({id:'settings', title:'Settings', content, width:360, height:220});
+  win.querySelector('#applyWall').addEventListener('click', ()=>{
+    const v = win.querySelector('#wallUrl').value.trim();
+    localStorage.setItem('mini_wallpaper', v);
+    applyWallpaper();
+    showToast('Wallpaper updated');
+  });
+  win.querySelector('#clearWall').addEventListener('click', ()=>{
+    localStorage.removeItem('mini_wallpaper'); applyWallpaper();
+  });
+}
+function applyWallpaper(){
+  const v = localStorage.getItem('mini_wallpaper') || '';
+  const bg = document.getElementById('bgOverlay');
+  if(v) bg.style.backgroundImage = `url(${v})`;
+  else bg.style.backgroundImage = '';
+}
+
+/* -----------------------
+   Notifications demo
+   ----------------------- */
+document.getElementById('notifyBtn').addEventListener('click', async ()=>{
+  if(!('Notification' in window)){ showToast('Notifications not supported'); return; }
+  if(Notification.permission === 'granted'){
+    new Notification('MiniOS', {body:'Hello from your mini OS!'});
+  } else if(Notification.permission !== 'denied'){
+    const p = await Notification.requestPermission();
+    if(p === 'granted') new Notification('MiniOS', {body:'Thanks for enabling notifications!'});
+    else showToast('Permission not granted');
+  } else {
+    showToast('Notifications are blocked in browser settings');
+  }
+});
+
+/* -----------------------
+   Clock + interactions
+   ----------------------- */
+function updateClock(){ document.getElementById('clock').textContent = (new Date()).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+setInterval(updateClock,1000); updateClock();
+
+document.getElementById('openSettings').addEventListener('click', openSettingsWin);
+
+/* -----------------------
+   Home icons
+   ----------------------- */
+document.querySelectorAll('.icon').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    const app = el.dataset.app;
+    if(app==='notes') openNotes();
+    if(app==='camera') openCamera();
+    if(app==='gallery') openGallery();
+    if(app==='about') createWindow({id:'about', title:'About', content:'<div style="padding:8px">MiniOS demo<br/>Built with HTML/CSS/JS<br/>No root required.</div>'});
+    if(app==='browser') createWindow({id:'browser', title:'Browser', content:`<div style="display:flex;gap:8px"><input id="url" style="flex:1" placeholder="https://example.com"/><button id="go" class="btn">Go</button></div><div style="margin-top:8px"><iframe id="frame" src="about:blank" style="width:100%;height:60vh;border:1px solid #ddd"></iframe></div>` , width:760, height:540});
+    // attach browser handlers after window created:
+    if(app==='browser'){
+      setTimeout(()=>{ const w = document.getElementById('win_browser'); if(!w) return;
+        w.querySelector('#go').addEventListener('click', ()=>{ const val = w.querySelector('#url').value.trim(); if(val) w.querySelector('#frame').src = val; });
+      },200);
     }
   });
+});
 
-  // service worker register
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(()=>console.log('sw failed'));
-  }
+/* dock shortcuts */
+document.getElementById('openHome').addEventListener('click', ()=>{ /* home just visible by default - focus */ showToast('You are on Home'); });
+document.getElementById('openGalleryDock').addEventListener('click', openGallery);
+
+/* PWA install prompt handling */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBtn').style.display = 'inline-block';
+});
+document.getElementById('installBtn').addEventListener('click', async ()=>{
+  if(deferredPrompt){ deferredPrompt.prompt(); const res = await deferredPrompt.userChoice; deferredPrompt = null; showToast('Install choice: '+res.outcome); }
+  else alert('Use browser menu → Add to Home screen');
+});
+
+/* apply wallpaper at start */
+applyWallpaper();
+
+/* register service worker (if present) */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>console.log('sw failed'));
+}
 </script>
 </body>
-</html>
+</html> 
