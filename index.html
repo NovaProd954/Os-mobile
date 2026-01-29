@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>MyMiniOS</title>
+<link rel="manifest" href="/manifest.json"/>
+<style>
+  :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+  body,html{height:100%;margin:0;background:#071024;color:#fff;display:flex;flex-direction:column}
+  header{padding:14px;font-size:18px;background:linear-gradient(90deg,rgba(255,255,255,0.03),transparent)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px;flex:0 0 auto}
+  .icon{background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;text-align:center;cursor:pointer;user-select:none}
+  .icon img{width:48px;height:48px;display:block;margin:0 auto 8px}
+  #appView{flex:1;background:#fff;border-top-left-radius:12px;border-top-right-radius:12px;overflow:hidden;display:none}
+  iframe{width:100%;height:100%;border:0}
+  .bar{display:flex;gap:8px;align-items:center}
+  button.round{background:#0d1b2a;border:1px solid #123;border-radius:999px;color:#fff;padding:8px 12px}
+</style>
+</head>
+<body>
+  <header class="bar">
+    <div>MyMiniOS</div>
+    <div style="margin-left:auto"><button id="installBtn" class="round">Install</button></div>
+  </header>
+
+  <div class="grid" id="home">
+    <div class="icon" data-app="https://example.com"><img src="https://via.placeholder.com/48" alt="A"><div>Browser</div></div>
+    <div class="icon" data-app="https://news.ycombinator.com"><img src="https://via.placeholder.com/48" alt="B"><div>News</div></div>
+    <div class="icon" data-app="about:blank" id="notesBtn"><img src="https://via.placeholder.com/48" alt="C"><div>Notes</div></div>
+    <div class="icon" data-app="https://calendar.google.com"><img src="https://via.placeholder.com/48" alt="D"><div>Calendar</div></div>
+  </div>
+
+  <div id="appView">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f4f4f4;color:#000">
+      <button id="back" class="round">Home</button>
+      <div id="appTitle">App</div>
+    </div>
+    <iframe id="appFrame" src=""></iframe>
+  </div>
+
+<script>
+  // open apps
+  const icons = document.querySelectorAll('.icon');
+  const appView = document.getElementById('appView');
+  const appFrame = document.getElementById('appFrame');
+  const appTitle = document.getElementById('appTitle');
+
+  icons.forEach(icon=>{
+    icon.addEventListener('click', ()=>{
+      const url = icon.dataset.app;
+      appTitle.textContent = icon.textContent.trim().split('\n')[0] || 'App';
+      if(url === 'about:blank'){
+        const notes = `<html><body style="font-family:system-ui;padding:12px"><h3>Notes</h3><textarea style="width:100%;height:70vh"></textarea></body></html>`;
+        appFrame.srcdoc = notes;
+      } else {
+        appFrame.src = url;
+      }
+      appView.style.display = 'block';
+      document.getElementById('home').style.display = 'none';
+    });
+  });
+
+  document.getElementById('back').addEventListener('click', ()=> {
+    appFrame.src = 'about:blank';
+    appFrame.srcdoc = '';
+    appView.style.display = 'none';
+    document.getElementById('home').style.display = 'grid';
+  });
+
+  // PWA install prompt handling
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installBtn').style.display = 'inline-block';
+  });
+  document.getElementById('installBtn').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt = null;
+    } else {
+      alert('Open the Chrome menu and choose "Add to Home screen".');
+    }
+  });
+
+  // service worker register
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(()=>console.log('sw failed'));
+  }
+</script>
+</body>
+</html>
